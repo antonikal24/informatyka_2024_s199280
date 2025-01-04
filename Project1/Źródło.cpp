@@ -50,6 +50,42 @@ public:
         checkWallCollisions(); // Sprawdzenie kolizji
         move(xVel, yVel); // Przesuniêcie pi³ki
     }
+
+};
+
+// Klasa reprezentuj¹ca paletkê gracza
+class Paddle {
+private:
+    sf::RectangleShape paddle; // Obiekt graficzny paletki
+    float speed = 0.5f; // Prêdkoœæ poruszania siê paletki
+    sf::Vector2f windowSize; // Rozmiar okna gry
+
+public:
+    // Konstruktor klasy
+    Paddle(float windowWidth, float windowHeight) {
+        windowSize.x = windowWidth;
+        windowSize.y = windowHeight;
+
+        paddle.setSize(sf::Vector2f(100.0f, 20.0f)); // Ustawienie rozmiaru paletki
+        paddle.setFillColor(sf::Color::Blue); // Nadanie koloru niebieskiego
+        paddle.setPosition(windowWidth / 2 - 50, windowHeight - 50); // Ustawienie pocz¹tkowej pozycji
+    }
+
+    // Funkcja zwracaj¹ca obiekt graficzny paletki
+    sf::RectangleShape getPaddle() {
+        return paddle;
+    }
+
+    // Funkcja poruszaj¹ca paletk¹ w lewo lub w prawo
+    void moveLeft() {
+        if (paddle.getPosition().x > 0)
+            paddle.move(-speed, 0);
+    }
+
+    void moveRight() {
+        if (paddle.getPosition().x + paddle.getSize().x < windowSize.x)
+            paddle.move(speed, 0);
+    }
 };
 
 int main() {
@@ -57,6 +93,13 @@ int main() {
     sf::Event event; // Obiekt do obs³ugi zdarzeñ
 
     BlueBall blueBall(400, 10, 500, 500); // Utworzenie obiektu niebieskiej pi³ki
+    Paddle paddle(500, 500); // Utworzenie obiektu paletki
+
+    sf::RectangleShape redBar; // Czerwony pasek oznaczaj¹cy pora¿kê
+    redBar.setSize(sf::Vector2f(500.0f, 10.0f));
+    redBar.setFillColor(sf::Color::Red);
+    redBar.setPosition(0, 490); // Pasek na dole okna
+
     sf::Clock clock; // Zegar do kontroli czasu animacji
 
     while (window.isOpen()) {
@@ -65,8 +108,18 @@ int main() {
                 window.close(); // Zamkniêcie okna gry
         }
 
-        window.clear(sf::Color::Green); // Czyszczenie okna kolorem zielonym
+        // Obs³uga klawiatury do poruszania paletk¹
+        if (sf::Keyboard::isKeyPressed(sf::Keyboard::A)) {
+            paddle.moveLeft();
+        }
+        if (sf::Keyboard::isKeyPressed(sf::Keyboard::D)) {
+            paddle.moveRight();
+        }
+
+        window.clear(sf::Color::Black); // Czyszczenie okna kolorem czarnym
         window.draw(blueBall.getBall()); // Rysowanie pi³ki
+        window.draw(paddle.getPaddle()); // Rysowanie paletki
+        window.draw(redBar); // Rysowanie czerwonego paska
         window.display(); // Wyœwietlanie zawartoœci okna
 
         if (clock.getElapsedTime().asMilliseconds() > 5.0f) {
@@ -75,5 +128,5 @@ int main() {
         }
     }
 
-    return 0; // Zakoñczenie programu
+    return 0;
 }
