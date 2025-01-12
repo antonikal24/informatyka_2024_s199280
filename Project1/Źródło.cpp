@@ -1,82 +1,28 @@
 #include <SFML/Graphics.hpp>
 #include <iostream>
+#include <vector>
 #include <string>
 
-// Klasa reprezentuj¹ca niebiesk¹ pi³eczkê
-class BlueBall {
-private:
-    sf::Vector2f position; // Pozycja pi³ki
-    float xVel = 1, yVel = 1; // Prêdkoœæ pi³ki w osi X i Y
-    sf::CircleShape ball; // Obiekt graficzny reprezentuj¹cy pi³kê
-    sf::Vector2f windowSize; // Rozmiar okna gry
-
-public:
-    // Konstruktor klasy
-    BlueBall(float x_in, float y_in, float windowWidth, float windowHeight) {
-        position.x = x_in;
-        position.y = y_in;
-        windowSize.x = windowWidth;
-        windowSize.y = windowHeight;
-
-        ball.setRadius(20.0f); // Ustawienie promienia pi³ki
-        ball.setFillColor(sf::Color::Blue); // Nadanie koloru niebieskiego
-        ball.setPosition(position); // Ustawienie pocz¹tkowej pozycji
-    }
-
-    // Funkcja przesuwaj¹ca pi³kê o zadane wartoœci
-    void move(float x_in, float y_in) {
-        sf::Vector2f displacement;
-        displacement.x = x_in;
-        displacement.y = y_in;
-        ball.move(displacement); // Przesuniêcie graficzne
-        position = ball.getPosition(); // Aktualizacja pozycji
-    }
-
-    // Funkcja zwracaj¹ca obiekt graficzny pi³ki
-    sf::CircleShape getBall() {
-        return ball;
-    }
-
-    // Funkcja sprawdzaj¹ca kolizje pi³ki ze œcianami okna
-    void checkWallCollisions() {
-        if (position.x <= 0 || position.x + ball.getRadius() * 2 >= windowSize.x)
-            xVel = -xVel; // Zmiana kierunku ruchu w osi X
-        if (position.y <= 0 || position.y + ball.getRadius() * 2 >= windowSize.y)
-            yVel = -yVel; // Zmiana kierunku ruchu w osi Y
-    }
-
-    // Funkcja animuj¹ca ruch pi³ki
-    void animate() {
-        checkWallCollisions(); // Sprawdzenie kolizji
-        move(xVel, yVel); // Przesuniêcie pi³ki
-    }
-
-};
-
-// Klasa reprezentuj¹ca paletkê gracza
 class Paddle {
 private:
-    sf::RectangleShape paddle; // Obiekt graficzny paletki
-    float speed = 0.5f; // Prêdkoœæ poruszania siê paletki
-    sf::Vector2f windowSize; // Rozmiar okna gry
+    sf::RectangleShape paddle;
+    float speed = 0.5f;
+    sf::Vector2f windowSize;
 
 public:
-    // Konstruktor klasy
     Paddle(float windowWidth, float windowHeight) {
         windowSize.x = windowWidth;
         windowSize.y = windowHeight;
 
-        paddle.setSize(sf::Vector2f(100.0f, 20.0f)); // Ustawienie rozmiaru paletki
-        paddle.setFillColor(sf::Color::Blue); // Nadanie koloru niebieskiego
-        paddle.setPosition(windowWidth / 2 - 50, windowHeight - 50); // Ustawienie pocz¹tkowej pozycji
+        paddle.setSize(sf::Vector2f(100.0f, 20.0f));
+        paddle.setFillColor(sf::Color::Blue);
+        paddle.setPosition(windowWidth / 2 - 50, windowHeight - 50);
     }
 
-    // Funkcja zwracaj¹ca obiekt graficzny paletki
     sf::RectangleShape getPaddle() {
         return paddle;
     }
 
-    // Funkcja poruszaj¹ca paletk¹ w lewo lub w prawo
     void moveLeft() {
         if (paddle.getPosition().x > 0)
             paddle.move(-speed, 0);
@@ -86,46 +32,168 @@ public:
         if (paddle.getPosition().x + paddle.getSize().x < windowSize.x)
             paddle.move(speed, 0);
     }
+
+    sf::FloatRect getBounds() {
+        return paddle.getGlobalBounds();
+    }
+};
+
+class Ball {
+private:
+    sf::CircleShape ball;
+    sf::Vector2f velocity;
+    float speed = 0.05f;
+
+public:
+    Ball(float windowWidth, float windowHeight) {
+        ball.setRadius(10.0f);
+        ball.setFillColor(sf::Color::White);
+        resetPosition(windowWidth, windowHeight);
+    }
+
+    sf::CircleShape getBall() {
+        return ball;
+    }
+
+    void move() {
+        ball.move(velocity);
+    }
+    
+    void bounceWindowBounds(float windowWidth, float windowHeight) {
+        if (ball.getPosition().x <= 0 || ball.getPosition().x + ball.getRadius() * 2 >= windowWidth)
+            velocity.x = -velocity.x;
+        if (ball.getPosition().y <= 0)
+            velocity.y = -velocity.y;
+    }
+
+    void bouncePaddle() {
+        velocity.y = -velocity.y;
+    }
+
+    sf::FloatRect getBounds() {
+        return ball.getGlobalBounds();
+    }
+    
+    void resetPosition(float windowWidth, float windowHeight) {
+        ball.setPosition(windowWidth / 2 - ball.getRadius(), windowHeight / 2 - ball.getRadius());
+        velocity = sf::Vector2f(speed, -speed);
+    }
+
+    void reverseY() {
+        velocity.y = -velocity.y;
+    }
 };
 
 int main() {
-    sf::RenderWindow window(sf::VideoMode(500, 500), "SFML Blue Ball Animation"); // Utworzenie okna gry
-    sf::Event event; // Obiekt do obs³ugi zdarzeñ
+    sf::RenderWindow window(sf::VideoMode(500, 500), "SFML Paddle Game");
+    sf::Event event;
 
-    BlueBall blueBall(400, 10, 500, 500); // Utworzenie obiektu niebieskiej pi³ki
-    Paddle paddle(500, 500); // Utworzenie obiektu paletki
+    Paddle paddle(500, 500);
+    Ball ball(500, 500);
 
-    sf::RectangleShape redBar; // Czerwony pasek oznaczaj¹cy pora¿kê
+    sf::RectangleShape redBar;
     redBar.setSize(sf::Vector2f(500.0f, 10.0f));
     redBar.setFillColor(sf::Color::Red);
-    redBar.setPosition(0, 490); // Pasek na dole okna
+    redBar.setPosition(0, 490);
+    
+    std::vector<sf::RectangleShape> blocks;
+    int rows = 5;
+    int cols = 10;
+    float blockWidth = 48.0f;
+    float blockHeight = 18.0f;
+    float padding = 2.0f;
+    int blocksDestroyed = 0;
+    bool gameOver = false;
 
-    sf::Clock clock; // Zegar do kontroli czasu animacji
+	// Tworzenie bloków
+    for (int i = 0; i < rows; i++) {
+        for (int j = 0; j < cols; j++) {
+            sf::RectangleShape block;
+            block.setSize(sf::Vector2f(blockWidth, blockHeight));
+            block.setFillColor(sf::Color::Green);
+            block.setPosition(j * (blockWidth + padding), i * (blockHeight + padding));
+            blocks.push_back(block);
+        }
+    }
+
+    sf::Font font;
+    if (!font.loadFromFile("arial.ttf")) {
+        std::cerr << "Failed to load font!" << std::endl;
+        return -1;
+    }
+
+    sf::Text scoreText;
+    scoreText.setFont(font);
+    scoreText.setCharacterSize(24);
+    scoreText.setFillColor(sf::Color::White);
+    scoreText.setPosition(10, 10);
+
+    sf::Text gameOverText;
+    gameOverText.setFont(font);
+    gameOverText.setCharacterSize(36);
+    gameOverText.setFillColor(sf::Color::Red);
+    gameOverText.setPosition(100, 200);
+    gameOverText.setString("");
 
     while (window.isOpen()) {
         while (window.pollEvent(event)) {
             if (event.type == sf::Event::Closed)
-                window.close(); // Zamkniêcie okna gry
+                window.close();
         }
 
-        // Obs³uga klawiatury do poruszania paletk¹
-        if (sf::Keyboard::isKeyPressed(sf::Keyboard::A)) {
-            paddle.moveLeft();
-        }
-        if (sf::Keyboard::isKeyPressed(sf::Keyboard::D)) {
-            paddle.moveRight();
+        if (!gameOver) {
+            if (sf::Keyboard::isKeyPressed(sf::Keyboard::A)) {
+                paddle.moveLeft();
+            }
+            if (sf::Keyboard::isKeyPressed(sf::Keyboard::D)) {
+                paddle.moveRight();
+            }
+
+            ball.move();
+            ball.bounceWindowBounds(500, 500);
+
+            // Kolizja pi³ki z paletk¹
+            if (ball.getBounds().intersects(paddle.getBounds())) {
+                ball.bouncePaddle();
+            }
+
+            // Kolizja pi³ki z blokami
+            for (auto it = blocks.begin(); it != blocks.end();) {
+                if (ball.getBounds().intersects(it->getGlobalBounds())) {
+                    it = blocks.erase(it);
+                    ball.reverseY();
+                    blocksDestroyed++;
+                }
+                else {
+                    ++it;
+                }
+            }
+
+            // Kolizja z doln¹ lini¹ (koniec gry)
+            if (ball.getBounds().intersects(redBar.getGlobalBounds())) {
+                gameOver = true;
+                gameOverText.setString("Koniec gry!\nZniszczone bloki: " + std::to_string(blocksDestroyed));
+            }
+
+            scoreText.setString("Blocks destroyed: " + std::to_string(blocksDestroyed));
         }
 
-        window.clear(sf::Color::Black); // Czyszczenie okna kolorem czarnym
-        window.draw(blueBall.getBall()); // Rysowanie pi³ki
-        window.draw(paddle.getPaddle()); // Rysowanie paletki
-        window.draw(redBar); // Rysowanie czerwonego paska
-        window.display(); // Wyœwietlanie zawartoœci okna
+        window.clear(sf::Color::Black);
 
-        if (clock.getElapsedTime().asMilliseconds() > 5.0f) {
-            blueBall.animate(); // Aktualizacja pozycji pi³ki
-            clock.restart(); // Restart zegara
+        if (!gameOver) {
+            window.draw(paddle.getPaddle());
+            window.draw(ball.getBall());
+            for (const auto& block : blocks) {
+                window.draw(block);
+            }
+            window.draw(redBar);
+            window.draw(scoreText);
         }
+        else {
+            window.draw(gameOverText);
+        }
+
+        window.display();
     }
 
     return 0;
