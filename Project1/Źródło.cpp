@@ -3,6 +3,11 @@
 #include <vector>
 #include <string>
 
+struct GameStats {
+    int level;
+    int blocksDestroyed;
+};
+
 class Paddle {
 private:
     sf::RectangleShape paddle;
@@ -92,13 +97,13 @@ public:
         speedFactor = factor;
     }
 };
-// Fuunkcja resetuj¹ca grê 
+//Funkcja resetuj¹ca grê
 void resetGame(Paddle& paddle, std::vector<Ball>& balls, std::vector<sf::RectangleShape>& blocks, int& blocksDestroyed, int rows, int cols, float blockWidth, float blockHeight, float padding, int level) {
     paddle.resetPosition();
     blocks.clear();
     blocksDestroyed = 0;
 
-    // Tworzenie bloków
+    //Tworzenie bloków
     for (int i = 0; i < rows; i++) {
         for (int j = 0; j < cols; j++) {
             sf::RectangleShape block;
@@ -109,7 +114,6 @@ void resetGame(Paddle& paddle, std::vector<Ball>& balls, std::vector<sf::Rectang
         }
     }
 
-
     balls.clear();
     for (int i = 0; i < level; ++i) {
         balls.emplace_back(500, 500);
@@ -117,7 +121,7 @@ void resetGame(Paddle& paddle, std::vector<Ball>& balls, std::vector<sf::Rectang
 }
 
 int main() {
-    sf::RenderWindow window(sf::VideoMode(500, 500), "SFML Paddle Game");
+    sf::RenderWindow window(sf::VideoMode(500, 500), "Paddle Game");
     sf::Event event;
 
     Paddle paddle(500, 500);
@@ -167,28 +171,47 @@ int main() {
     pauseText.setFont(font);
     pauseText.setCharacterSize(20);
     pauseText.setFillColor(sf::Color::Yellow);
-    pauseText.setPosition(150, 100);
-    pauseText.setString("Gra zatrzymana\nNacisnij F1\nzeby wznowic\n +/- do zmiany predkosci");
+    pauseText.setPosition(150, 150);
+    pauseText.setString("Gra zatrzymana\nNacisnij F1\nzeby wznowic\n +/- do zmiany predkosci\n C - Czarny, Z - Zolty,\n P - Pomaranczowy, F - Fioletowy");
 
     sf::Text confirmExitText;
     confirmExitText.setFont(font);
     confirmExitText.setCharacterSize(24);
     confirmExitText.setFillColor(sf::Color::Cyan);
     confirmExitText.setPosition(50, 200);
-    confirmExitText.setString("Czy napewno chcesz opuscic?\n (y-tak/n-nie)");
+    confirmExitText.setString("Czy napewno chcesz opuscic?\n (y-tak/n-nie/m-menu)");
 
     sf::Text speedText;
     speedText.setFont(font);
     speedText.setCharacterSize(15);
     speedText.setFillColor(sf::Color::White);
-    speedText.setPosition(150, 200);
+    speedText.setPosition(150, 290);
 
     sf::Text levelSelectionText;
     levelSelectionText.setFont(font);
     levelSelectionText.setCharacterSize(20);
     levelSelectionText.setFillColor(sf::Color::Yellow);
-    levelSelectionText.setPosition(150, 220);
+    levelSelectionText.setPosition(150, 310);
     levelSelectionText.setString("Wybierz poziom:\n1 - Poziom 1\n2 - Poziom 2\n3 - Poziom 3");
+
+    sf::Text statsText;
+    statsText.setFont(font);
+    statsText.setCharacterSize(20);
+    statsText.setFillColor(sf::Color::White);
+    statsText.setPosition(50, 150);
+
+    bool gameStarted = false;
+    bool showStats = false;
+
+    sf::Text welcomeText;
+    welcomeText.setFont(font);
+    welcomeText.setCharacterSize(30);
+    welcomeText.setFillColor(sf::Color::White);
+    welcomeText.setPosition(50, 200);
+    welcomeText.setString("Witaj w grze!\nNacisnij Enter zeby rozpoczac\nNacisnij Tab zeby sprawdzic statystyki");
+
+    std::vector<GameStats> gameStats;
+    sf::Color backgroundColor = sf::Color::Black;
 
     while (window.isOpen()) {
         while (window.pollEvent(event)) {
@@ -196,53 +219,79 @@ int main() {
                 window.close();
 
             if (event.type == sf::Event::KeyPressed) {
-                if (!confirmExit) {
-                    if (event.key.code == sf::Keyboard::F1) {
-                        isPaused = true;
+                if (!gameStarted) {
+                    if (event.key.code == sf::Keyboard::Enter) {
+                        gameStarted = true;
                     }
-                    if (event.key.code == sf::Keyboard::Escape) {
-                        confirmExit = true;
-                        isPaused = true;
-                    }
-                    if (isPaused) {
-                        if (event.key.code == sf::Keyboard::Add || event.key.code == sf::Keyboard::Equal) {
-                            gameSpeed += 0.1f;
-                        }
-                        if (event.key.code == sf::Keyboard::Subtract || event.key.code == sf::Keyboard::Dash) {
-                            gameSpeed = std::max(0.1f, gameSpeed - 0.1f);
-                        }
-
-                        //wybór poziomu
-                        if (event.key.code == sf::Keyboard::Num1) {
-                            currentLevel = 1;
-                            resetGame(paddle, balls, blocks, blocksDestroyed, rows, cols, blockWidth, blockHeight, padding, currentLevel);
-                            isPaused = false;
-                        }
-                        if (event.key.code == sf::Keyboard::Num2) {
-                            currentLevel = 2;
-                            resetGame(paddle, balls, blocks, blocksDestroyed, rows, cols, blockWidth, blockHeight, padding, currentLevel);
-                            isPaused = false;
-                        }
-                        if (event.key.code == sf::Keyboard::Num3) {
-                            currentLevel = 3;
-                            resetGame(paddle, balls, blocks, blocksDestroyed, rows, cols, blockWidth, blockHeight, padding, currentLevel);
-                            isPaused = false;
-                        }
-                    }
-
-                    if (gameOver && event.key.code == sf::Keyboard::R) {
-                        currentLevel = 1;
-                        resetGame(paddle, balls, blocks, blocksDestroyed, rows, cols, blockWidth, blockHeight, padding, currentLevel);
-                        gameOver = false;
+                    if (event.key.code == sf::Keyboard::Tab) {
+                        showStats = true;
                     }
                 }
                 else {
-                    if (event.key.code == sf::Keyboard::Y) {
-                        window.close();
+                    if (!confirmExit) {
+                        if (event.key.code == sf::Keyboard::F1) {
+                            isPaused = !isPaused;
+                        }
+                        if (event.key.code == sf::Keyboard::Escape) {
+                            confirmExit = true;
+                            isPaused = true;
+                        }
+                        if (isPaused) {
+                            if (event.key.code == sf::Keyboard::Add || event.key.code == sf::Keyboard::Equal) {
+                                gameSpeed += 0.1f;
+                            }
+                            if (event.key.code == sf::Keyboard::Subtract || event.key.code == sf::Keyboard::Dash) {
+                                gameSpeed = std::max(0.1f, gameSpeed - 0.1f);
+                            }
+                            //wybór poziomu
+                            if (event.key.code == sf::Keyboard::Num1) {
+                                currentLevel = 1;
+                                resetGame(paddle, balls, blocks, blocksDestroyed, rows, cols, blockWidth, blockHeight, padding, currentLevel);
+                                isPaused = false;
+                            }
+                            if (event.key.code == sf::Keyboard::Num2) {
+                                currentLevel = 2;
+                                resetGame(paddle, balls, blocks, blocksDestroyed, rows, cols, blockWidth, blockHeight, padding, currentLevel);
+                                isPaused = false;
+                            }
+                            if (event.key.code == sf::Keyboard::Num3) {
+                                currentLevel = 3;
+                                resetGame(paddle, balls, blocks, blocksDestroyed, rows, cols, blockWidth, blockHeight, padding, currentLevel);
+                                isPaused = false;
+                            }
+
+                            if (event.key.code == sf::Keyboard::C) {
+                                backgroundColor = sf::Color::Black;
+                            }
+                            if (event.key.code == sf::Keyboard::Z) {
+                                backgroundColor = sf::Color::Yellow;
+                            }
+                            if (event.key.code == sf::Keyboard::P) {
+                                backgroundColor = sf::Color(255, 165, 0);
+                            }
+                            if (event.key.code == sf::Keyboard::F) {
+                                backgroundColor = sf::Color(128, 0, 128);
+                            }
+                        }
+
+                        if (gameOver && event.key.code == sf::Keyboard::R) {
+                            currentLevel = 1;
+                            resetGame(paddle, balls, blocks, blocksDestroyed, rows, cols, blockWidth, blockHeight, padding, currentLevel);
+                            gameOver = false;
+                        }
                     }
-                    if (event.key.code == sf::Keyboard::N) {
-                        confirmExit = false;
-                        isPaused = false;
+                    else {
+                        if (event.key.code == sf::Keyboard::Y) {
+                            window.close();
+                        }
+                        if (event.key.code == sf::Keyboard::N) {
+                            confirmExit = false;
+                            isPaused = false;
+                        }
+                        if (event.key.code == sf::Keyboard::M) {
+                            gameStarted = false;
+                            confirmExit = false;
+                        }
                     }
                 }
             }
@@ -252,78 +301,103 @@ int main() {
             ball.setSpeedFactor(gameSpeed);
         }
 
-        if (!isPaused && !gameOver && !confirmExit) {
-            if (sf::Keyboard::isKeyPressed(sf::Keyboard::A)) {
-                paddle.moveLeft();
-            }
-            if (sf::Keyboard::isKeyPressed(sf::Keyboard::D)) {
-                paddle.moveRight();
-            }
+        if (gameStarted) {
+            if (!isPaused && !gameOver && !confirmExit) {
+                if (sf::Keyboard::isKeyPressed(sf::Keyboard::A)) {
+                    paddle.moveLeft();
+                }
+                if (sf::Keyboard::isKeyPressed(sf::Keyboard::D)) {
+                    paddle.moveRight();
+                }
 
-            for (auto& ball : balls) {
-                ball.move();
-                ball.bounceWindowBounds(500, 500);
-                // Kolizja pi³ki z paletk¹
-                if (ball.getBounds().intersects(paddle.getBounds())) {
-                    ball.bouncePaddle();
-                }
-                // Kolizja pi³ki z blokami
-                for (auto it = blocks.begin(); it != blocks.end();) {
-                    if (ball.getBounds().intersects(it->getGlobalBounds())) {
-                        it = blocks.erase(it);
-                        ball.reverseY();
-                        blocksDestroyed++;
+                for (auto& ball : balls) {
+                    ball.move();
+                    ball.bounceWindowBounds(500, 500);
+                    //Kolizja pi³i z paletk¹ 
+                    if (ball.getBounds().intersects(paddle.getBounds())) {
+                        ball.bouncePaddle();
                     }
-                    else {
-                        ++it;
+
+                    //Kolizja pi³ki z blokami
+                    for (auto it = blocks.begin(); it != blocks.end();) {
+                        if (ball.getBounds().intersects(it->getGlobalBounds())) {
+                            it = blocks.erase(it);
+                            ball.reverseY();
+                            blocksDestroyed++;
+                        }
+                        else {
+                            ++it;
+                        }
+                    }
+                    //Kolizja z doln¹ lini¹ (koniec gry)
+                    if (ball.getBounds().intersects(redBar.getGlobalBounds())) {
+                        //Zbieranie statystyk po przegranej
+                        gameStats.push_back({ currentLevel, blocksDestroyed });
+                        gameOver = true;
+                        gameOverText.setString("Game Over!\nBlocks destroyed: " + std::to_string(blocksDestroyed) + "\nNacinij R ¿eby zrestartowac");
                     }
                 }
-                // Kolizja z doln¹ lini¹ (koniec gry)
-                if (ball.getBounds().intersects(redBar.getGlobalBounds())) {
+                //Sprawdzanie czy wszytskie bloki zosta³y zniszczone
+                if (blocks.empty() && currentLevel < maxLevel) {
+                    currentLevel++;
+                    resetGame(paddle, balls, blocks, blocksDestroyed, rows, cols, blockWidth, blockHeight, padding, currentLevel);
+                }
+                //Sprawdzanie czy wszystkie bloki zosta³y zniszone i czy gracz wygra³
+                else if (blocks.empty() && currentLevel == maxLevel) {
+                    //zbiieranie statystk po wykranej
+                    gameStats.push_back({ currentLevel, blocksDestroyed });
                     gameOver = true;
-                    gameOverText.setString("Game Over!\nBlocks destroyed: " + std::to_string(blocksDestroyed) + "\nPress R to restart");
+                    gameOverText.setString("Wygra³eœ!\nBlocks destroyed: " + std::to_string(blocksDestroyed) + "\nNacisnij R ¿eby zrestartowac");
                 }
             }
-            // Sprawdzanie czy wszystkie bloki zosta³y zniszczone
-            if (blocks.empty() && currentLevel < maxLevel) {
-                currentLevel++;
-                resetGame(paddle, balls, blocks, blocksDestroyed, rows, cols, blockWidth, blockHeight, padding, currentLevel);
-            }
-            // Sprawdzanie czy wszytkie bloki zosat³y zniszoczne i czy gracz wygra³
-            else if (blocks.empty() && currentLevel == maxLevel) {
-                gameOver = true;
-                gameOverText.setString("You Win!\nBlocks destroyed: " + std::to_string(blocksDestroyed) + "\nPress R to restart");
-            }
-
-            scoreText.setString("Blocks destroyed: " + std::to_string(blocksDestroyed));
         }
 
-        speedText.setString("Speed: " + std::to_string(gameSpeed));
 
-        window.clear(sf::Color::Black);
+        window.clear(backgroundColor);
 
-        if (confirmExit) {
-            window.draw(confirmExitText);
-        }
-
-        else if (isPaused) {
-            window.draw(levelSelectionText);
-            window.draw(pauseText);
-            window.draw(speedText);
-        }
-        else if (!gameOver) {
-            window.draw(paddle.getPaddle());
-            for (const auto& ball : balls) {
-                window.draw(ball.getBall());
+        if (!gameStarted) {
+            if (showStats) {
+                statsText.setString("Statystyki:\n");
+                for (size_t i = 0; i < gameStats.size(); ++i) {
+                    statsText.setString(statsText.getString() + "Level: " + std::to_string(gameStats[i].level) + ", Bloki zniszoczne: " + std::to_string(gameStats[i].blocksDestroyed) + "\n");
+                }
+                window.draw(statsText);
             }
-            for (const auto& block : blocks) {
-                window.draw(block);
+            else {
+                window.draw(welcomeText);
             }
-            window.draw(redBar);
-            window.draw(scoreText);
         }
         else {
-            window.draw(gameOverText);
+            if (!confirmExit && !gameOver) {
+                for (const auto& block : blocks) {
+                    window.draw(block);
+                }
+
+                for (const auto& ball : balls) {
+                    window.draw(ball.getBall());
+                }
+
+                window.draw(paddle.getPaddle());
+                window.draw(redBar);
+
+                if (isPaused) {
+                    window.draw(pauseText);
+                    speedText.setString("Aktualna predkosc: " + std::to_string(gameSpeed));
+                    window.draw(speedText);
+                    window.draw(levelSelectionText);
+                }
+
+                scoreText.setString("Bloki zniszczone: " + std::to_string(blocksDestroyed) + "\nPoziom: " + std::to_string(currentLevel));
+                window.draw(scoreText);
+            }
+
+            if (confirmExit) {
+                window.draw(confirmExitText);
+            }
+
+            if (gameOver) {
+                window.draw(gameOverText);
+            }
         }
 
         window.display();
@@ -331,3 +405,4 @@ int main() {
 
     return 0;
 }
+
